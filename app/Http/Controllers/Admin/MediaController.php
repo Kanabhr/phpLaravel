@@ -33,10 +33,21 @@ class MediaController extends Controller
                 $query->whereDate('created_at', '<=', $request->end_date);
             }
 
-            $media = $query->latest()->paginate(20);
+            if ($request->filled('type') && $request->type === 'image') {
+                $query->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+            }
+
+            match ($request->input('sort', 'newest')) {
+                'oldest' => $query->oldest(),
+                'name'   => $query->orderBy('original_filename', 'asc'),
+                default  => $query->latest(),
+            };
+
+            $media = $query->paginate(20);
             return response()->json([
-                'data' => $media->items(),
+                'data'      => $media->items(),
                 'last_page' => $media->lastPage(),
+                'total'     => $media->total(),
             ]);
         }
         return view('admin.media.index');

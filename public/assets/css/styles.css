@@ -1452,7 +1452,7 @@ body.sidebar-collapsed .content-shell {
 [data-theme="dark"] .booking-modal .form-label.text-muted {
   color: #cbd5e1 !important;
 }
-}
+
 
 .grid-span {
   grid-column: 1 / -1;
@@ -3021,4 +3021,80 @@ table.dataTable>tbody>tr.child span.dtr-data {
 
 .status-dot.online {
   background-color: #198754; /* Bootstrap success */
+}
+/* ===== Bootstrap "primary" -> site green ===== */
+:root {
+    --bs-primary: #1D3621;
+    --bs-primary-rgb: 29, 54, 33;
+}
+[data-theme="dark"] {
+    --bs-primary: #34d399;
+    --bs-primary-rgb: 52, 211, 153;
+}
+
+/* Outline primary buttons (e.g. "Insert Image from Media Library") */
+.btn-outline-primary {
+    --bs-btn-color: var(--red);
+    --bs-btn-border-color: var(--red);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--red);
+    --bs-btn-hover-border-color: var(--red);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--red-dark);
+    --bs-btn-active-border-color: var(--red-dark);
+    --bs-btn-disabled-color: var(--red);
+    --bs-btn-disabled-border-color: var(--red);
+}
+
+/* Dark mode: the green is bright, so use dark text on it */
+[data-theme="dark"] .btn-outline-primary {
+    --bs-btn-hover-color: #111113;
+    --bs-btn-active-color: #111113;
+}
+[data-theme="dark"] .modal-header.bg-primary {
+    color: #111113 !important;
+}
+[data-theme="dark"] .modal-header.bg-primary .btn-close {
+    filter: none;
+}
+
+/* ── Media Library: Search Bar ──────────────────────────────────────────── */
+.media-search-group {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease;
+}
+
+.media-search-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.media-search-group:focus-within .input-group-text,
+.media-search-group:focus-within .media-search-input,
+.media-search-group:focus-within .media-search-clear {
+    border-color: #86b7fe;
+}
+
+.media-search-group .input-group-text {
+    transition: border-color 0.2s ease;
+}
+
+.media-search-group .media-search-input {
+    transition: border-color 0.2s ease;
+}
+
+.media-search-group .media-search-clear {
+    transition: border-color 0.2s ease;
+}
+
+.media-search-group:focus-within .bi-search {
+    color: #495057 !important;
+}
+body.sidebar-collapsed .sidebar-nav {
+    overflow: hidden;
+}
+
+body.sidebar-collapsed .sidebar {
+    overflow: hidden;
 }
