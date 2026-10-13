@@ -27,23 +27,26 @@
                     <label class="form-label fw-bold">Blog Title *</label>
                     <input type="text" name="title" id="title" class="form-control form-control-lg" placeholder="Enter blog title here" required>
                 </div>
-                
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Slug *</label>
                     <input type="text" name="slug" id="slug" class="form-control" placeholder="auto-generated-slug" required>
                 </div>
-                
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Content *</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary mb-2 d-block" onclick="openEditorImageModal()">
+                        <i class="bi bi-image me-1"></i> Insert Image from Media Library
+                    </button>
                     <textarea name="content" id="blogEditor" class="form-control"></textarea>
                 </div>
-                
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Excerpt / Short Description</label>
                     <textarea name="excerpt" class="form-control" rows="3" placeholder="A brief summary of the blog..."></textarea>
                 </div>
             </div>
-            
+
             <!-- SEO Panel -->
             <div class="panel mb-4">
                 <h5 class="fw-bold mb-3"><i class="bi bi-search me-2"></i>SEO Settings</h5>
@@ -62,7 +65,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Sidebar Column -->
         <div class="col-xl-3 col-lg-4">
             <!-- Publish Panel -->
@@ -81,7 +84,7 @@
                     <button type="submit" class="btn btn-primary">Publish</button>
                 </div>
             </div>
-            
+
             <!-- Categories Panel -->
             <div class="panel mb-4">
                 <h6 class="fw-bold mb-3 border-bottom pb-2">Categories</h6>
@@ -94,12 +97,12 @@
                         </label>
                     </div>
                     @endforeach
-                    @if($categories->isEmpty())
+                    @if(($categories ?? collect())->isEmpty())
                     <p class="text-muted small">No categories found.</p>
                     @endif
                 </div>
             </div>
-            
+
             <!-- Tags Panel -->
             <div class="panel mb-4">
                 <h6 class="fw-bold mb-3 border-bottom pb-2">Tags</h6>
@@ -112,7 +115,7 @@
                         </label>
                     </div>
                     @endforeach
-                    @if($tags->isEmpty())
+                    @if(($tags ?? collect())->isEmpty())
                     <p class="text-muted small">No tags found.</p>
                     @endif
                 </div>
@@ -138,7 +141,7 @@
     </div>
 </form>
 
-<!-- Media Library Modal for Featured Image -->
+<!-- Media Library Modal (used for Featured Image and for the editor) -->
 <div class="modal fade" id="mediaLibraryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -168,7 +171,7 @@
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;"></div>
                         </div>
                     </div>
-                    
+
                     <!-- Library Panel -->
                     <div class="tab-pane fade show active" id="library-panel" role="tabpanel">
                         <div class="mb-3">
@@ -181,7 +184,7 @@
                 </div>
             </div>
             <div class="modal-footer border-top-0 pt-3 pb-4 px-4">
-                <input type="hidden" id="mediaTarget" value=""> <!-- 'tinymce' or 'featured' -->
+                <input type="hidden" id="mediaTarget" value=""> <!-- 'ckeditor' or 'featured' -->
                 <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary px-4" id="insertMediaBtn" disabled>Insert Selected Image</button>
             </div>
@@ -192,13 +195,23 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<style>
+    .ck-editor__editable_inline { min-height: 400px; }
+    .ck-editor__editable_inline ul, .ck-editor__editable_inline ol { padding-left: 1.5rem; }
+</style>
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js" integrity="sha384-69SUO5s28dXCoNTUaA/KXhfDJu21xD394Gxk/S6d/YJZUxrz7Zagi+seruzXFTed" crossorigin="anonymous"></script>
 <script>
+    // Escape values before putting them inside HTML attributes
+    function esc(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Auto-generate slug from title
         const titleInput = document.getElementById('title');
         const slugInput = document.getElementById('slug');
-        
+
         titleInput.addEventListener('input', function() {
             let slug = this.value.toLowerCase()
                 .replace(/[^\w\s-]/g, '')
@@ -207,57 +220,48 @@
             slugInput.value = slug;
         });
 
-        // Initialize TinyMCE
-        tinymce.init({
-            selector: '#blogEditor',
-            height: 450,
-            menubar: true,
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'insertdatetime', 'media', 'table', 'wordcount', 'preview'
-            ],
-            toolbar: 'undo redo | blocks | bold italic underline strikethrough | ' +
-                     'forecolor backcolor | alignleft aligncenter alignright alignjustify | ' +
-                     'bullist numlist outdent indent | link image media table | ' +
-                     'code fullscreen preview | removeformat',
-            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 16px; line-height: 1.6; }',
-            image_title: true,
-            automatic_uploads: false,
-            file_picker_types: 'image',
-            file_picker_callback: function(cb, value, meta) {
-                // Open our custom media library
-                window._tinymceCallback = cb;
-                document.getElementById('mediaTarget').value = 'tinymce';
-                loadMedia();
-                (bootstrap.Modal.getInstance(document.getElementById('mediaLibraryModal')) || new bootstrap.Modal(document.getElementById('mediaLibraryModal'))).show();
-            },
-            setup: function(editor) {
-                window.tinymceEditor = editor;
-            }
-        });
+        // Initialize CKEditor 5
+        ClassicEditor
+            .create(document.querySelector('#blogEditor'), {
+                toolbar: [
+                    'heading', '|', 'bold', 'italic', 'link', '|',
+                    'bulletedList', 'numberedList', 'outdent', 'indent', '|',
+                    'blockQuote', 'insertTable', '|',
+                    'undo', 'redo'
+                ]
+            })
+            .then(editor => {
+                window.blogEditor = editor;
+            })
+            .catch(error => console.error('CKEditor error:', error));
 
         // Handle form submission via AJAX
         const blogForm = document.getElementById('blogForm');
         blogForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // TinyMCE saves directly to the textarea — trigger save first
-            tinymce.triggerSave();
+            if (!window.blogEditor) {
+                Swal.fire('Please wait', 'The editor is still loading.', 'warning');
+                return;
+            }
+            // Copy CKEditor's HTML into the textarea before sending
+            window.blogEditor.updateSourceElement();
 
-            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
             fetch(this.action, {
                 method: 'POST',
-                body: formData,
+                body: new FormData(this),
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if(data.success) {
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && data.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
@@ -268,27 +272,41 @@
                         window.location.href = data.redirect || '{{ route("admin.blogs.index") }}';
                     });
                 } else {
-                    Swal.fire('Error', 'Error saving blog.', 'error');
+                    const msg = data.errors
+                        ? Object.values(data.errors).flat().join('\n')
+                        : (data.message || 'Error saving blog.');
+                    Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                    submitBtn.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 Swal.fire('Error', 'An error occurred.', 'error');
+                submitBtn.disabled = false;
             });
         });
     });
-    
+
     function saveAsDraft() {
         document.querySelector('select[name="status"]').value = 'draft';
-        document.getElementById('blogForm').dispatchEvent(new Event('submit'));
+        document.getElementById('blogForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     }
 
     let selectedMedia = null;
 
-    function openFeaturedImageModal() {
-        document.getElementById('mediaTarget').value = 'featured';
+    function openMediaModal() {
         loadMedia();
         (bootstrap.Modal.getInstance(document.getElementById('mediaLibraryModal')) || new bootstrap.Modal(document.getElementById('mediaLibraryModal'))).show();
+    }
+
+    function openFeaturedImageModal() {
+        document.getElementById('mediaTarget').value = 'featured';
+        openMediaModal();
+    }
+
+    function openEditorImageModal() {
+        document.getElementById('mediaTarget').value = 'ckeditor';
+        openMediaModal();
     }
 
     function removeFeaturedImage() {
@@ -323,11 +341,11 @@
 
         const progressBar = document.querySelector('#uploadProgress .progress-bar');
         document.getElementById('uploadProgress').classList.remove('d-none');
-        
+
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '{{ route("admin.media.store") }}', true);
         xhr.setRequestHeader('Accept', 'application/json');
-        
+
         xhr.upload.onprogress = function(e) {
             if (e.lengthComputable) progressBar.style.width = ((e.loaded / e.total) * 100) + '%';
         };
@@ -338,12 +356,13 @@
                 loadMedia();
                 Swal.fire({ icon: 'success', title: 'Uploaded!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
             } else {
-                Swal.fire('Upload Failed', xhr.responseText, 'error');
+                const errText = xhr.responseText.length < 300 ? xhr.responseText : 'Server error. Please check the logs.';
+                Swal.fire({ icon: 'error', title: 'Upload Failed', text: errText });
             }
             document.getElementById('uploadProgress').classList.add('d-none');
             progressBar.style.width = '0%';
         };
-        
+
         xhr.send(formData);
     }
 
@@ -356,7 +375,7 @@
         .then(data => {
             const grid = document.getElementById('mediaGrid');
             grid.innerHTML = '';
-            if (data.data.length === 0) {
+            if (!data.data || data.data.length === 0) {
                 grid.innerHTML = '<div class="col-12 text-center text-muted p-5">No media found. Upload some files!</div>';
                 return;
             }
@@ -364,11 +383,15 @@
                 const url = '/storage/' + media.path;
                 grid.innerHTML += `
                     <div class="col-md-2 col-sm-3 col-4 mb-2">
-                        <div class="card h-100 media-item" data-url="${url}" data-id="${media.id}" data-alt="${media.alt_text}" style="cursor:pointer;" onclick="selectMedia(this)">
-                            <img src="${url}" class="card-img-top object-fit-cover" style="height: 100px;" alt="${media.alt_text}">
+                        <div class="card h-100 media-item" data-url="${esc(url)}" data-id="${esc(media.id)}" data-alt="${esc(media.alt_text)}" style="cursor:pointer;" onclick="selectMedia(this)">
+                            <img src="${esc(url)}" class="card-img-top object-fit-cover" style="height: 100px;" alt="${esc(media.alt_text)}">
                         </div>
                     </div>`;
             });
+        })
+        .catch(() => {
+            const grid = document.getElementById('mediaGrid');
+            if (grid) grid.innerHTML = '<div class="col-12 text-center text-muted p-5">Could not load media. Please try again.</div>';
         });
     }
 
@@ -381,15 +404,22 @@
 
     document.getElementById('insertMediaBtn').addEventListener('click', function() {
         if (!selectedMedia) return;
-        
+
         const target = document.getElementById('mediaTarget').value;
-        if (target === 'tinymce') {
-            // Insert image into TinyMCE via file_picker_callback or directly
-            if (window._tinymceCallback) {
-                window._tinymceCallback(selectedMedia.url, { title: selectedMedia.alt });
-                window._tinymceCallback = null;
-            } else {
-                tinymce.activeEditor.insertContent(`<img src="${selectedMedia.url}" alt="${selectedMedia.alt}" style="max-width:100%;">`);
+
+        if (target === 'ckeditor') {
+            if (window.blogEditor) {
+                try {
+                    window.blogEditor.execute('insertImage', {
+                        source: [{ src: selectedMedia.url, alt: selectedMedia.alt }]
+                    });
+                } catch (err) {
+                    // Fallback: insert the image through the editor model
+                    window.blogEditor.model.change(writer => {
+                        const img = writer.createElement('imageBlock', { src: selectedMedia.url, alt: selectedMedia.alt });
+                        window.blogEditor.model.insertContent(img);
+                    });
+                }
             }
         } else if (target === 'featured') {
             document.getElementById('featuredImageInput').value = selectedMedia.url;
@@ -398,7 +428,7 @@
             document.getElementById('setFeaturedImageBtn').classList.add('d-none');
             document.getElementById('removeFeaturedImageBtn').classList.remove('d-none');
         }
-        
+
         bootstrap.Modal.getInstance(document.getElementById('mediaLibraryModal')).hide();
         selectedMedia = null;
         document.getElementById('insertMediaBtn').disabled = true;

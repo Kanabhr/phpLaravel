@@ -36,7 +36,7 @@ Route::prefix('admin')
         Route::resource('tags', App\Http\Controllers\Admin\TagController::class)->except(['create', 'edit', 'show']);
         
         // Media Library
-        Route::resource('media', App\Http\Controllers\Admin\MediaController::class)->except(['create', 'edit', 'show']);
+        Route::resource('media', App\Http\Controllers\Admin\MediaController::class)->except(['create', 'edit', 'show'])->parameters(['media' => 'media']);
 
         // Site Settings
         Route::get('/settings', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use HTMLPurifier;
+use HTMLPurifier_Config;
 use Illuminate\Http\Request;
 
 class BlogController extends Controller
@@ -40,10 +42,19 @@ class BlogController extends Controller
             'status' => 'required|in:draft,published,scheduled',
         ]);
 
+        // Sanitize HTML content to prevent stored XSS
+        $purifierConfig = HTMLPurifier_Config::createDefault();
+        $purifierConfig->set('HTML.Allowed', 'p,br,strong,em,u,s,ul,ol,li,blockquote,h1,h2,h3,h4,h5,h6,a[href|title|target],img[src|alt|width|height],table,thead,tbody,tr,th,td,figure,figcaption,oembed[url]');
+        $purifierConfig->set('AutoFormat.AutoParagraph', false);
+        $purifierConfig->set('AutoFormat.RemoveEmpty', true);
+        $purifierConfig->set('URI.AllowedSchemes', ['http' => true, 'https' => true]);
+        $purifier = new HTMLPurifier($purifierConfig);
+        $cleanContent = $purifier->purify($request->content);
+
         $blog = Blog::create([
             'title' => $request->title,
             'slug' => $request->slug,
-            'content' => $request->content,
+            'content' => $cleanContent,
             'excerpt' => $request->excerpt,
             'featured_image' => $request->featured_image,
             'status' => $request->status,
@@ -59,11 +70,13 @@ class BlogController extends Controller
             $blog->tags()->sync($request->tags);
         }
 
-        $blog->seo()->create([
-            'meta_title' => $request->seo_title,
-            'meta_description' => $request->seo_description,
-            'focus_keyword' => $request->seo_keywords,
-        ]);
+        if ($request->filled('seo_title') || $request->filled('seo_description') || $request->filled('seo_keywords')) {
+            $blog->seo()->create([
+                'meta_title' => $request->seo_title,
+                'meta_description' => $request->seo_description,
+                'focus_keyword' => $request->seo_keywords,
+            ]);
+        }
 
         return response()->json(['success' => true, 'redirect' => route('admin.blogs.index')]);
     }
